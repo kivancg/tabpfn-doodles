@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spot the Fake Cat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* A ballpoint-on-dot-grid sketchbook: one column, the drawing card is the hero, highlighter marks the choice. */
+  --paper: #f3f5fa;
+  --sheet: #fbfcff;
+  --ink: #1f2b5b;
+  --muted: #5d668c;
+  --grid: #d3d9ea;
+  --mark: #ffe45c;
+  --mark-ink: #1a1a14;
+  --font-display: "Kalam", "Comic Neue", "Segoe Print", cursive;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11142a; --sheet: #171b36; --ink: #dfe4ff; --muted: #9aa2c8;
+    --grid: #2a3058; --mark: #f2d34a; --mark-ink: #15140c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11142a; --sheet: #171b36; --ink: #dfe4ff; --muted: #9aa2c8;
+  --grid: #2a3058; --mark: #f2d34a; --mark-ink: #15140c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 17px; line-height: 1.5;
+}
+main { max-width: 640px; margin: 0 auto; padding: 28px 16px 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+h1 {
+  font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 7vw, 48px);
+  line-height: 1.05; margin: 0; text-wrap: balance;
+}
+h1 .hl { text-decoration: underline; text-decoration-color: var(--mark); text-decoration-thickness: 0.16em; text-underline-offset: 0.06em; text-decoration-skip-ink: none; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 26px; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 62ch; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.stack { display: grid; gap: 12px; }
+
+.card {
+  background-color: var(--sheet);
+  background-image: radial-gradient(var(--grid) 1.2px, transparent 1.3px);
+  background-size: 18px 18px;
+  border: 1.5px solid var(--grid); border-radius: 6px;
+  padding: 18px; display: grid; justify-items: center; gap: 10px; position: relative;
+}
+.card svg { width: min(320px, 78vw); height: auto; display: block; }
+.card .tag { position: absolute; top: 10px; left: 14px; font-family: var(--font-display); color: var(--muted); font-size: 18px; }
+.ink path { fill: none; stroke: var(--ink); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+.draw path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 0.5s ease-out forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .draw path { animation: none; stroke-dashoffset: 0; } }
+
+.progress { display: flex; align-items: center; gap: 12px; font-variant-numeric: tabular-nums; }
+.bar { flex: 1; height: 6px; background: var(--grid); border-radius: 3px; overflow: hidden; }
+.bar > div { height: 100%; background: var(--ink); width: 0; transition: width 0.2s; }
+
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+button {
+  font: inherit; color: var(--ink); background: var(--sheet); cursor: pointer;
+  border: 2px solid var(--ink); border-radius: 6px; padding: 12px 14px;
+}
+button:hover { background: var(--mark); color: var(--mark-ink); border-color: var(--mark-ink); }
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+button.primary { background: var(--ink); color: var(--paper); font-weight: 700; }
+button.primary:hover { background: var(--mark); color: var(--mark-ink); }
+.choices button { display: grid; gap: 2px; text-align: center; font-weight: 700; font-size: 18px; }
+.choices kbd { font-family: var(--font-body); font-weight: 400; font-size: 13px; color: var(--muted); }
+.choices button:hover kbd { color: var(--mark-ink); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+th { font-weight: 700; font-size: 14px; color: var(--muted); }
+td.num { text-align: right; white-space: nowrap; }
+.meter { height: 10px; background: var(--grid); border-radius: 5px; overflow: hidden; min-width: 80px; }
+.meter > div { height: 100%; background: var(--ink); }
+
+.code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; word-break: break-all;
+  background: var(--sheet); border: 1.5px dashed var(--grid); border-radius: 6px; padding: 10px;
+}
+textarea {
+  width: 100%; min-height: 80px; font-family: ui-monospace, Menlo, monospace; font-size: 13px;
+  color: var(--ink); background: var(--sheet); border: 1.5px solid var(--grid); border-radius: 6px; padding: 8px;
+}
+.panel { border-top: 2px dashed var(--grid); padding-top: 20px; }
+.examples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.examples .card { padding: 8px; }
+.examples svg { width: 100%; }
+[hidden] { display: none !important; }
+@media (max-width: 420px) { .choices { grid-template-columns: 1fr; } }
+a { color: var(--ink); text-decoration-color: var(--mark); text-decoration-thickness: 3px; text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="stack">
+    <h1>Spot the <span class="hl">fake</span> cat</h1>
+    <p class="muted">Some of these cats were doodled by people for Google's <em>Quick, Draw!</em> game. Others were made up by an AI. Can you tell which? <a href="index.html">How this was made</a></p>
+  </header>
+
+  <!-- start -->
+  <section id="start" class="stack">
+    <div class="examples" id="examples"></div>
+    <p>You'll see <strong>24 cats</strong>, one at a time. For each one, decide: did a person draw it, or did the AI make it up?</p>
+    <p class="muted small">Every cat is redrawn by the same pen, so the line style is no clue. Only the cat itself is: its ears, whiskers, nose, eyes and how they fit together. No feedback until the end. It takes about two minutes.</p>
+    <div class="row"><button class="primary" id="go">Start the 24 cats</button></div>
+  </section>
+
+  <!-- question -->
+  <section id="quiz" class="stack" hidden>
+    <div class="progress"><span id="count">1 / 24</span><div class="bar"><div id="barfill"></div></div></div>
+    <div class="card" id="qcard"><span class="tag" id="qtag">cat 1</span><div id="qsvg"></div></div>
+    <div class="choices">
+      <button id="saidReal">A person drew it<kbd>key R or ←</kbd></button>
+      <button id="saidFake">The AI made it<kbd>key F or →</kbd></button>
+    </div>
+  </section>
+
+  <!-- results -->
+  <section id="done" class="stack" hidden>
+    <h2 id="scoreline">You got 0 of 24 right</h2>
+    <p class="muted">There were three kinds of cats, 8 of each. Here is how often you said "a person drew it":</p>
+    <table>
+      <thead><tr><th>Cats</th><th></th><th class="num">You said "person"</th></tr></thead>
+      <tbody id="mine"></tbody>
+    </table>
+    <p class="small muted"><strong>TabPFN</strong> cats were made by a tabular AI model that learned how real cats' parts relate to each other.
+      <strong>Shuffled</strong> cats mix parts from different real cats, so each part is real but they don't belong together.
+      If TabPFN cats fool you about as often as real ones, the AI passed.</p>
+    <div class="stack">
+      <p id="savestatus" class="small">Your result code (it lists which cats you saw and what you answered):</p>
+      <div class="code" id="resultcode"></div>
+      <div class="row">
+        <button id="copy">Copy my result code</button>
+        <button id="again">Take it again with new cats</button>
+        <span id="copied" class="small muted" role="status"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- owner only -->
+  <section id="owner" class="panel stack" hidden>
+    <h2>Results so far</h2>
+    <p class="small muted" id="ownerstatus">Loading saved answers…</p>
+    <table>
+      <thead><tr><th>Cats</th><th></th><th class="num">Called "person"</th><th class="num">Answers</th></tr></thead>
+      <tbody id="tally"></tbody>
+    </table>
+    <label for="codes" class="small">Paste result codes people sent you (one or many, any spacing):</label>
+    <textarea id="codes" placeholder="TD1-…"></textarea>
+    <div class="row">
+      <button id="addcodes">Add these codes</button>
+      <button id="refresh">Refresh</button>
+      <span id="addstatus" class="small muted" role="status"></span>
+    </div>
+  </section>
+</main>
+
+<script>
+const DATA = {"columns":["head_aspect","ear_l_x","ear_l_y","ear_l_angle","ear_r_x","ear_r_y","ear_r_angle","whisk_l","whisk_r","whisk_len","whisk_tilt","has_nose","nose_x","nose_y","nose_size","nose_shape","nose_round","has_eyes","eye_gap","eye_y","eye_size"],"cats":[{"group":"shuffled","head_aspect":0.813,"ear_l_x":-1.196,"ear_l_y":-0.942,"ear_l_angle":68.847,"ear_r_x":1.451,"ear_r_y":-1.528,"ear_r_angle":51.8,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.297,"nose_y":0.085,"nose_size":0.161,"nose_shape":1.0,"nose_round":0.117,"has_eyes":1.0,"eye_gap":0.46,"eye_y":-0.028,"eye_size":0.251,"id":0},{"group":"tabpfn","head_aspect":0.869,"ear_l_x":-0.692,"ear_l_y":-1.726,"ear_l_angle":22.094,"ear_r_x":0.483,"ear_r_y":-1.753,"ear_r_angle":90.843,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.067,"nose_y":0.421,"nose_size":0.605,"nose_shape":1.0,"nose_round":0.404,"has_eyes":1.0,"eye_gap":0.552,"eye_y":-0.154,"eye_size":0.47,"id":1},{"group":"real","head_aspect":0.874,"ear_l_x":-0.911,"ear_l_y":-0.813,"ear_l_angle":63.439,"ear_r_x":0.392,"ear_r_y":-0.922,"ear_r_angle":63.179,"whisk_l":1.0,"whisk_r":2.0,"whisk_len":1.097,"whisk_tilt":11.896,"has_nose":1.0,"nose_x":-0.059,"nose_y":0.321,"nose_size":0.388,"nose_shape":1.0,"nose_round":0.574,"has_eyes":1.0,"eye_gap":0.607,"eye_y":0.025,"eye_size":0.245,"id":2},{"group":"shuffled","head_aspect":1.311,"ear_l_x":-1.013,"ear_l_y":-0.792,"ear_l_angle":46.367,"ear_r_x":0.837,"ear_r_y":-0.75,"ear_r_angle":97.755,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.155,"nose_y":-0.044,"nose_size":0.023,"nose_shape":1.0,"nose_round":0.19,"has_eyes":1.0,"eye_gap":0.505,"eye_y":-0.11,"eye_size":0.376,"id":3},{"group":"real","head_aspect":1.1,"ear_l_x":-0.401,"ear_l_y":-1.456,"ear_l_angle":55.538,"ear_r_x":0.571,"ear_r_y":-1.218,"ear_r_angle":57.317,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":1.029,"eye_y":-0.155,"eye_size":0.458,"id":4},{"group":"real","head_aspect":0.987,"ear_l_x":-0.908,"ear_l_y":-1.408,"ear_l_angle":58.872,"ear_r_x":1.143,"ear_r_y":-1.333,"ear_r_angle":102.804,"whisk_l":2.0,"whisk_r":0.0,"whisk_len":1.705,"whisk_tilt":25.914,"has_nose":1.0,"nose_x":-0.402,"nose_y":-0.221,"nose_size":0.173,"nose_shape":1.0,"nose_round":0.347,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":5},{"group":"real","head_aspect":0.744,"ear_l_x":-1.061,"ear_l_y":-0.847,"ear_l_angle":78.457,"ear_r_x":0.597,"ear_r_y":-1.009,"ear_r_angle":82.089,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":0.901,"whisk_tilt":22.821,"has_nose":1.0,"nose_x":-0.324,"nose_y":0.002,"nose_size":0.23,"nose_shape":1.0,"nose_round":0.157,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":6},{"group":"real","head_aspect":0.934,"ear_l_x":-0.773,"ear_l_y":-1.741,"ear_l_angle":99.153,"ear_r_x":1.469,"ear_r_y":-1.959,"ear_r_angle":72.664,"whisk_l":2.0,"whisk_r":0.0,"whisk_len":1.059,"whisk_tilt":36.525,"has_nose":1.0,"nose_x":-0.232,"nose_y":-0.177,"nose_size":0.054,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.529,"eye_y":-0.177,"eye_size":0.052,"id":7},{"group":"shuffled","head_aspect":0.851,"ear_l_x":-0.465,"ear_l_y":-2.448,"ear_l_angle":51.6,"ear_r_x":1.003,"ear_r_y":-1.153,"ear_r_angle":44.718,"whisk_l":2.0,"whisk_r":0.0,"whisk_len":0.872,"whisk_tilt":11.859,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.058,"eye_y":-0.372,"eye_size":0.476,"id":8},{"group":"real","head_aspect":0.94,"ear_l_x":-0.617,"ear_l_y":-1.692,"ear_l_angle":52.131,"ear_r_x":1.122,"ear_r_y":-1.352,"ear_r_angle":31.073,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":9},{"group":"real","head_aspect":0.79,"ear_l_x":-0.522,"ear_l_y":-1.494,"ear_l_angle":95.208,"ear_r_x":0.742,"ear_r_y":-1.331,"ear_r_angle":60.362,"whisk_l":0.0,"whisk_r":2.0,"whisk_len":0.925,"whisk_tilt":18.699,"has_nose":1.0,"nose_x":0.048,"nose_y":0.254,"nose_size":0.206,"nose_shape":1.0,"nose_round":0.869,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":10},{"group":"tabpfn","head_aspect":0.672,"ear_l_x":-0.951,"ear_l_y":-1.111,"ear_l_angle":67.583,"ear_r_x":0.805,"ear_r_y":-1.091,"ear_r_angle":83.909,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.054,"nose_y":0.259,"nose_size":0.213,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.458,"eye_y":-0.146,"eye_size":0.065,"id":11},{"group":"shuffled","head_aspect":0.84,"ear_l_x":-0.665,"ear_l_y":-2.301,"ear_l_angle":65.696,"ear_r_x":0.951,"ear_r_y":-0.621,"ear_r_angle":73.67,"whisk_l":0.0,"whisk_r":2.0,"whisk_len":0.563,"whisk_tilt":10.676,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":12},{"group":"tabpfn","head_aspect":0.73,"ear_l_x":-0.849,"ear_l_y":-1.361,"ear_l_angle":47.874,"ear_r_x":0.75,"ear_r_y":-1.093,"ear_r_angle":86.474,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":1.076,"whisk_tilt":18.351,"has_nose":1.0,"nose_x":0.084,"nose_y":0.314,"nose_size":0.129,"nose_shape":1.0,"nose_round":0.429,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":13},{"group":"shuffled","head_aspect":0.853,"ear_l_x":-1.0,"ear_l_y":-1.705,"ear_l_angle":106.538,"ear_r_x":0.848,"ear_r_y":-1.038,"ear_r_angle":61.545,"whisk_l":3.0,"whisk_r":2.0,"whisk_len":0.979,"whisk_tilt":35.316,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.767,"eye_y":-0.592,"eye_size":0.333,"id":14},{"group":"shuffled","head_aspect":1.073,"ear_l_x":-0.554,"ear_l_y":-1.251,"ear_l_angle":85.839,"ear_r_x":1.094,"ear_r_y":-0.828,"ear_r_angle":56.792,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.043,"nose_y":0.066,"nose_size":0.343,"nose_shape":1.0,"nose_round":0.664,"has_eyes":1.0,"eye_gap":1.127,"eye_y":-0.235,"eye_size":0.096,"id":15},{"group":"shuffled","head_aspect":0.933,"ear_l_x":-1.06,"ear_l_y":-1.481,"ear_l_angle":67.21,"ear_r_x":1.293,"ear_r_y":-0.927,"ear_r_angle":56.163,"whisk_l":0.0,"whisk_r":3.0,"whisk_len":0.96,"whisk_tilt":8.47,"has_nose":1.0,"nose_x":0.065,"nose_y":0.228,"nose_size":0.569,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.515,"eye_y":-0.13,"eye_size":0.349,"id":16},{"group":"shuffled","head_aspect":1.235,"ear_l_x":-1.301,"ear_l_y":-1.459,"ear_l_angle":38.837,"ear_r_x":1.002,"ear_r_y":-1.539,"ear_r_angle":71.793,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":1.949,"whisk_tilt":9.97,"has_nose":1.0,"nose_x":-0.091,"nose_y":0.34,"nose_size":0.09,"nose_shape":1.0,"nose_round":0.359,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":17},{"group":"shuffled","head_aspect":0.663,"ear_l_x":-0.755,"ear_l_y":-1.829,"ear_l_angle":29.939,"ear_r_x":0.79,"ear_r_y":-1.061,"ear_r_angle":14.286,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.213,"nose_y":-0.137,"nose_size":0.136,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.822,"eye_y":-0.108,"eye_size":0.178,"id":18},{"group":"shuffled","head_aspect":0.953,"ear_l_x":-0.978,"ear_l_y":-1.315,"ear_l_angle":40.988,"ear_r_x":0.963,"ear_r_y":-1.604,"ear_r_angle":14.355,"whisk_l":0.0,"whisk_r":1.0,"whisk_len":1.269,"whisk_tilt":3.366,"has_nose":1.0,"nose_x":-0.25,"nose_y":0.217,"nose_size":0.235,"nose_shape":1.0,"nose_round":0.238,"has_eyes":1.0,"eye_gap":0.008,"eye_y":-0.087,"eye_size":0.376,"id":19},{"group":"shuffled","head_aspect":0.969,"ear_l_x":-0.799,"ear_l_y":-2.967,"ear_l_angle":101.021,"ear_r_x":0.826,"ear_r_y":-1.299,"ear_r_angle":41.833,"whisk_l":1.0,"whisk_r":0.0,"whisk_len":0.509,"whisk_tilt":9.887,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":20},{"group":"shuffled","head_aspect":1.042,"ear_l_x":-1.01,"ear_l_y":-1.591,"ear_l_angle":49.217,"ear_r_x":0.927,"ear_r_y":-2.04,"ear_r_angle":73.746,"whisk_l":0.0,"whisk_r":3.0,"whisk_len":0.757,"whisk_tilt":17.936,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":1.034,"eye_y":-0.513,"eye_size":0.017,"id":21},{"group":"real","head_aspect":0.812,"ear_l_x":-0.318,"ear_l_y":-1.754,"ear_l_angle":73.676,"ear_r_x":0.851,"ear_r_y":-1.518,"ear_r_angle":81.67,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.055,"nose_y":0.331,"nose_size":0.0,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.676,"eye_y":-0.108,"eye_size":0.238,"id":22},{"group":"real","head_aspect":1.074,"ear_l_x":-0.947,"ear_l_y":-1.244,"ear_l_angle":44.213,"ear_r_x":0.869,"ear_r_y":-1.423,"ear_r_angle":38.436,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.02,"nose_y":0.054,"nose_size":0.049,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.728,"eye_y":-0.275,"eye_size":0.026,"id":23},{"group":"shuffled","head_aspect":0.933,"ear_l_x":-0.594,"ear_l_y":-1.471,"ear_l_angle":89.793,"ear_r_x":1.424,"ear_r_y":-1.711,"ear_r_angle":87.747,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.025,"nose_y":0.286,"nose_size":0.519,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":24},{"group":"real","head_aspect":0.826,"ear_l_x":-0.429,"ear_l_y":-0.785,"ear_l_angle":60.376,"ear_r_x":0.537,"ear_r_y":-0.801,"ear_r_angle":47.584,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":0.615,"whisk_tilt":10.523,"has_nose":1.0,"nose_x":-0.11,"nose_y":0.418,"nose_size":0.12,"nose_shape":1.0,"nose_round":0.345,"has_eyes":1.0,"eye_gap":0.693,"eye_y":0.095,"eye_size":0.201,"id":25},{"group":"real","head_aspect":0.878,"ear_l_x":-1.014,"ear_l_y":-0.967,"ear_l_angle":53.557,"ear_r_x":1.245,"ear_r_y":-0.828,"ear_r_angle":75.967,"whisk_l":3.0,"whisk_r":1.0,"whisk_len":1.149,"whisk_tilt":12.787,"has_nose":1.0,"nose_x":-0.076,"nose_y":0.219,"nose_size":0.296,"nose_shape":1.0,"nose_round":0.183,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":26},{"group":"shuffled","head_aspect":0.913,"ear_l_x":-0.429,"ear_l_y":-1.301,"ear_l_angle":35.324,"ear_r_x":0.412,"ear_r_y":-1.749,"ear_r_angle":51.578,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":2.511,"whisk_tilt":10.672,"has_nose":1.0,"nose_x":-0.276,"nose_y":0.262,"nose_size":0.0,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.866,"eye_y":-0.358,"eye_size":0.11,"id":27},{"group":"shuffled","head_aspect":0.778,"ear_l_x":-0.574,"ear_l_y":-1.778,"ear_l_angle":54.733,"ear_r_x":1.017,"ear_r_y":-1.148,"ear_r_angle":62.46,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.446,"nose_y":0.091,"nose_size":0.197,"nose_shape":1.0,"nose_round":0.482,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":28},{"group":"tabpfn","head_aspect":0.965,"ear_l_x":-0.566,"ear_l_y":-1.883,"ear_l_angle":19.393,"ear_r_x":0.549,"ear_r_y":-1.761,"ear_r_angle":84.45,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.382,"eye_y":-0.385,"eye_size":0.193,"id":29},{"group":"tabpfn","head_aspect":0.773,"ear_l_x":-1.126,"ear_l_y":-1.339,"ear_l_angle":41.764,"ear_r_x":1.227,"ear_r_y":-0.863,"ear_r_angle":103.524,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":30},{"group":"real","head_aspect":0.661,"ear_l_x":-1.06,"ear_l_y":-0.761,"ear_l_angle":44.088,"ear_r_x":1.198,"ear_r_y":-0.681,"ear_r_angle":31.968,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":0.919,"whisk_tilt":13.525,"has_nose":1.0,"nose_x":-0.288,"nose_y":0.128,"nose_size":0.204,"nose_shape":1.0,"nose_round":0.291,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":31},{"group":"shuffled","head_aspect":1.06,"ear_l_x":-0.257,"ear_l_y":-1.597,"ear_l_angle":52.924,"ear_r_x":0.783,"ear_r_y":-1.836,"ear_r_angle":43.427,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.173,"nose_y":-0.1,"nose_size":0.028,"nose_shape":1.0,"nose_round":0.055,"has_eyes":1.0,"eye_gap":0.5,"eye_y":-0.283,"eye_size":0.513,"id":32},{"group":"real","head_aspect":0.991,"ear_l_x":-0.821,"ear_l_y":-1.116,"ear_l_angle":45.272,"ear_r_x":0.86,"ear_r_y":-1.188,"ear_r_angle":31.186,"whisk_l":0.0,"whisk_r":1.0,"whisk_len":0.416,"whisk_tilt":0.0,"has_nose":1.0,"nose_x":-0.077,"nose_y":0.199,"nose_size":0.093,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.585,"eye_y":-0.053,"eye_size":0.0,"id":33},{"group":"real","head_aspect":0.91,"ear_l_x":-0.553,"ear_l_y":-1.183,"ear_l_angle":94.186,"ear_r_x":1.101,"ear_r_y":-1.01,"ear_r_angle":30.935,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.204,"nose_y":-0.197,"nose_size":0.121,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.121,"eye_y":0.031,"eye_size":0.296,"id":34},{"group":"real","head_aspect":0.996,"ear_l_x":-0.966,"ear_l_y":-1.544,"ear_l_angle":89.566,"ear_r_x":1.248,"ear_r_y":-1.259,"ear_r_angle":24.257,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.141,"nose_y":0.032,"nose_size":0.23,"nose_shape":1.0,"nose_round":0.453,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":35},{"group":"real","head_aspect":1.319,"ear_l_x":-0.751,"ear_l_y":-1.789,"ear_l_angle":56.777,"ear_r_x":0.887,"ear_r_y":-1.747,"ear_r_angle":64.251,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":1.67,"whisk_tilt":19.117,"has_nose":1.0,"nose_x":0.216,"nose_y":-0.229,"nose_size":0.016,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":36},{"group":"real","head_aspect":1.015,"ear_l_x":-0.107,"ear_l_y":-1.132,"ear_l_angle":22.221,"ear_r_x":0.865,"ear_r_y":-2.463,"ear_r_angle":12.782,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.148,"nose_y":-0.015,"nose_size":0.0,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.407,"eye_y":-0.227,"eye_size":0.417,"id":37},{"group":"tabpfn","head_aspect":0.858,"ear_l_x":-1.306,"ear_l_y":-0.973,"ear_l_angle":40.588,"ear_r_x":0.851,"ear_r_y":-1.152,"ear_r_angle":69.972,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.221,"nose_y":0.419,"nose_size":0.004,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.398,"eye_y":0.016,"eye_size":0.024,"id":38},{"group":"shuffled","head_aspect":0.88,"ear_l_x":-0.904,"ear_l_y":-0.902,"ear_l_angle":37.635,"ear_r_x":1.158,"ear_r_y":-1.726,"ear_r_angle":73.746,"whisk_l":1.0,"whisk_r":0.0,"whisk_len":0.928,"whisk_tilt":9.971,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.727,"eye_y":-0.259,"eye_size":0.141,"id":39},{"group":"tabpfn","head_aspect":1.067,"ear_l_x":-1.096,"ear_l_y":-1.155,"ear_l_angle":55.508,"ear_r_x":0.889,"ear_r_y":-1.416,"ear_r_angle":32.037,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.292,"nose_y":0.12,"nose_size":0.1,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":40},{"group":"real","head_aspect":0.846,"ear_l_x":-0.429,"ear_l_y":-1.276,"ear_l_angle":57.498,"ear_r_x":0.955,"ear_r_y":-1.711,"ear_r_angle":41.46,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":1.197,"whisk_tilt":8.17,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":41},{"group":"real","head_aspect":0.802,"ear_l_x":-0.734,"ear_l_y":-1.021,"ear_l_angle":62.073,"ear_r_x":0.777,"ear_r_y":-0.916,"ear_r_angle":85.593,"whisk_l":0.0,"whisk_r":1.0,"whisk_len":0.815,"whisk_tilt":36.069,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":42},{"group":"shuffled","head_aspect":0.857,"ear_l_x":-1.213,"ear_l_y":-0.768,"ear_l_angle":37.03,"ear_r_x":0.983,"ear_r_y":-1.502,"ear_r_angle":102.476,"whisk_l":0.0,"whisk_r":3.0,"whisk_len":1.46,"whisk_tilt":14.232,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":43},{"group":"shuffled","head_aspect":1.362,"ear_l_x":-0.667,"ear_l_y":-1.082,"ear_l_angle":33.145,"ear_r_x":0.615,"ear_r_y":-0.778,"ear_r_angle":89.824,"whisk_l":3.0,"whisk_r":0.0,"whisk_len":0.317,"whisk_tilt":20.028,"has_nose":1.0,"nose_x":-0.112,"nose_y":-0.108,"nose_size":0.222,"nose_shape":1.0,"nose_round":0.676,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":44},{"group":"tabpfn","head_aspect":0.673,"ear_l_x":-0.522,"ear_l_y":-1.369,"ear_l_angle":25.567,"ear_r_x":0.786,"ear_r_y":-1.155,"ear_r_angle":44.511,"whisk_l":1.0,"whisk_r":3.0,"whisk_len":2.105,"whisk_tilt":6.765,"has_nose":1.0,"nose_x":-0.14,"nose_y":0.368,"nose_size":0.364,"nose_shape":1.0,"nose_round":0.539,"has_eyes":1.0,"eye_gap":1.061,"eye_y":-0.269,"eye_size":0.16,"id":45},{"group":"tabpfn","head_aspect":1.105,"ear_l_x":-1.074,"ear_l_y":-1.384,"ear_l_angle":46.167,"ear_r_x":0.954,"ear_r_y":-1.284,"ear_r_angle":75.648,"whisk_l":1.0,"whisk_r":0.0,"whisk_len":0.818,"whisk_tilt":9.363,"has_nose":1.0,"nose_x":-0.346,"nose_y":0.186,"nose_size":0.004,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.456,"eye_y":-0.062,"eye_size":0.101,"id":46},{"group":"tabpfn","head_aspect":1.063,"ear_l_x":-0.458,"ear_l_y":-1.051,"ear_l_angle":63.94,"ear_r_x":0.806,"ear_r_y":-1.068,"ear_r_angle":42.556,"whisk_l":0.0,"whisk_r":3.0,"whisk_len":1.111,"whisk_tilt":17.191,"has_nose":1.0,"nose_x":0.128,"nose_y":0.378,"nose_size":0.527,"nose_shape":1.0,"nose_round":0.199,"has_eyes":1.0,"eye_gap":0.475,"eye_y":-0.176,"eye_size":0.362,"id":47},{"group":"tabpfn","head_aspect":0.726,"ear_l_x":-0.72,"ear_l_y":-0.955,"ear_l_angle":91.832,"ear_r_x":1.113,"ear_r_y":-1.072,"ear_r_angle":51.311,"whisk_l":0.0,"whisk_r":5.0,"whisk_len":0.611,"whisk_tilt":16.51,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":48},{"group":"real","head_aspect":0.837,"ear_l_x":-0.998,"ear_l_y":-1.696,"ear_l_angle":32.021,"ear_r_x":0.955,"ear_r_y":-1.655,"ear_r_angle":50.519,"whisk_l":1.0,"whisk_r":3.0,"whisk_len":0.721,"whisk_tilt":15.244,"has_nose":1.0,"nose_x":0.056,"nose_y":0.328,"nose_size":0.274,"nose_shape":1.0,"nose_round":0.369,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":49},{"group":"shuffled","head_aspect":0.605,"ear_l_x":-0.702,"ear_l_y":-1.89,"ear_l_angle":61.64,"ear_r_x":0.826,"ear_r_y":-1.338,"ear_r_angle":42.428,"whisk_l":1.0,"whisk_r":3.0,"whisk_len":1.519,"whisk_tilt":24.583,"has_nose":1.0,"nose_x":-0.422,"nose_y":0.228,"nose_size":0.274,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.445,"eye_y":-0.127,"eye_size":0.21,"id":50},{"group":"shuffled","head_aspect":1.056,"ear_l_x":-1.442,"ear_l_y":-1.302,"ear_l_angle":50.544,"ear_r_x":1.002,"ear_r_y":-0.903,"ear_r_angle":52.867,"whisk_l":2.0,"whisk_r":3.0,"whisk_len":1.147,"whisk_tilt":34.245,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":51},{"group":"tabpfn","head_aspect":0.973,"ear_l_x":-0.695,"ear_l_y":-1.146,"ear_l_angle":78.275,"ear_r_x":0.717,"ear_r_y":-1.128,"ear_r_angle":55.736,"whisk_l":1.0,"whisk_r":3.0,"whisk_len":1.25,"whisk_tilt":14.354,"has_nose":1.0,"nose_x":0.305,"nose_y":-0.18,"nose_size":0.191,"nose_shape":1.0,"nose_round":0.272,"has_eyes":1.0,"eye_gap":0.896,"eye_y":-0.212,"eye_size":0.27,"id":52},{"group":"real","head_aspect":0.984,"ear_l_x":-0.958,"ear_l_y":-0.974,"ear_l_angle":40.42,"ear_r_x":1.004,"ear_r_y":-1.304,"ear_r_angle":34.117,"whisk_l":3.0,"whisk_r":2.0,"whisk_len":0.861,"whisk_tilt":16.684,"has_nose":1.0,"nose_x":-0.121,"nose_y":0.167,"nose_size":0.549,"nose_shape":1.0,"nose_round":0.381,"has_eyes":1.0,"eye_gap":0.52,"eye_y":-0.361,"eye_size":0.579,"id":53},{"group":"real","head_aspect":0.729,"ear_l_x":-1.161,"ear_l_y":-1.018,"ear_l_angle":63.327,"ear_r_x":0.905,"ear_r_y":-1.048,"ear_r_angle":34.278,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.298,"nose_y":0.004,"nose_size":0.369,"nose_shape":1.0,"nose_round":0.732,"has_eyes":1.0,"eye_gap":0.08,"eye_y":0.115,"eye_size":0.385,"id":54},{"group":"real","head_aspect":0.881,"ear_l_x":-1.227,"ear_l_y":-1.369,"ear_l_angle":26.038,"ear_r_x":0.857,"ear_r_y":-1.597,"ear_r_angle":36.903,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.013,"nose_y":0.307,"nose_size":0.329,"nose_shape":1.0,"nose_round":0.286,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":55},{"group":"real","head_aspect":0.893,"ear_l_x":-0.559,"ear_l_y":-0.971,"ear_l_angle":32.876,"ear_r_x":0.81,"ear_r_y":-0.934,"ear_r_angle":39.13,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":56},{"group":"shuffled","head_aspect":1.239,"ear_l_x":-0.924,"ear_l_y":-1.082,"ear_l_angle":67.408,"ear_r_x":1.064,"ear_r_y":-0.956,"ear_r_angle":43.893,"whisk_l":3.0,"whisk_r":1.0,"whisk_len":1.476,"whisk_tilt":24.722,"has_nose":1.0,"nose_x":-0.1,"nose_y":0.285,"nose_size":0.13,"nose_shape":1.0,"nose_round":0.744,"has_eyes":1.0,"eye_gap":0.058,"eye_y":-0.128,"eye_size":0.106,"id":57},{"group":"shuffled","head_aspect":1.195,"ear_l_x":-0.66,"ear_l_y":-0.845,"ear_l_angle":32.184,"ear_r_x":0.813,"ear_r_y":-1.282,"ear_r_angle":45.809,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":1.343,"whisk_tilt":15.343,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":58},{"group":"tabpfn","head_aspect":1.09,"ear_l_x":-0.628,"ear_l_y":-1.878,"ear_l_angle":29.969,"ear_r_x":0.931,"ear_r_y":-1.452,"ear_r_angle":35.135,"whisk_l":0.0,"whisk_r":2.0,"whisk_len":1.305,"whisk_tilt":6.211,"has_nose":1.0,"nose_x":0.026,"nose_y":-0.114,"nose_size":0.587,"nose_shape":1.0,"nose_round":0.332,"has_eyes":1.0,"eye_gap":1.187,"eye_y":-0.285,"eye_size":0.592,"id":59},{"group":"real","head_aspect":0.682,"ear_l_x":-0.815,"ear_l_y":-0.644,"ear_l_angle":45.393,"ear_r_x":0.953,"ear_r_y":-0.908,"ear_r_angle":93.09,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":1.136,"whisk_tilt":18.346,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":60},{"group":"shuffled","head_aspect":0.981,"ear_l_x":-0.99,"ear_l_y":-2.28,"ear_l_angle":72.526,"ear_r_x":0.787,"ear_r_y":-1.993,"ear_r_angle":41.808,"whisk_l":0.0,"whisk_r":1.0,"whisk_len":1.294,"whisk_tilt":10.446,"has_nose":1.0,"nose_x":0.154,"nose_y":0.132,"nose_size":0.0,"nose_shape":1.0,"nose_round":0.643,"has_eyes":1.0,"eye_gap":0.092,"eye_y":-0.325,"eye_size":0.514,"id":61},{"group":"real","head_aspect":0.979,"ear_l_x":-0.801,"ear_l_y":-1.634,"ear_l_angle":51.182,"ear_r_x":0.929,"ear_r_y":-1.511,"ear_r_angle":64.251,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.123,"nose_y":0.057,"nose_size":0.038,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.066,"eye_y":0.031,"eye_size":0.448,"id":62},{"group":"tabpfn","head_aspect":0.884,"ear_l_x":-0.612,"ear_l_y":-1.403,"ear_l_angle":93.634,"ear_r_x":0.92,"ear_r_y":-1.58,"ear_r_angle":60.071,"whisk_l":2.0,"whisk_r":1.0,"whisk_len":1.8,"whisk_tilt":38.699,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.588,"eye_y":-0.645,"eye_size":0.06,"id":63},{"group":"real","head_aspect":1.004,"ear_l_x":-1.203,"ear_l_y":-1.894,"ear_l_angle":44.09,"ear_r_x":1.058,"ear_r_y":-2.013,"ear_r_angle":100.608,"whisk_l":3.0,"whisk_r":1.0,"whisk_len":1.317,"whisk_tilt":14.83,"has_nose":1.0,"nose_x":-0.178,"nose_y":0.162,"nose_size":0.632,"nose_shape":1.0,"nose_round":0.609,"has_eyes":1.0,"eye_gap":0.803,"eye_y":-0.416,"eye_size":0.263,"id":64},{"group":"real","head_aspect":0.947,"ear_l_x":-0.369,"ear_l_y":-1.634,"ear_l_angle":51.522,"ear_r_x":1.073,"ear_r_y":-1.834,"ear_r_angle":96.475,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.147,"nose_y":-0.285,"nose_size":0.022,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":65},{"group":"tabpfn","head_aspect":0.761,"ear_l_x":-0.647,"ear_l_y":-1.228,"ear_l_angle":79.409,"ear_r_x":1.11,"ear_r_y":-0.964,"ear_r_angle":85.08,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.033,"nose_y":0.286,"nose_size":0.279,"nose_shape":1.0,"nose_round":0.677,"has_eyes":1.0,"eye_gap":0.754,"eye_y":-0.008,"eye_size":0.021,"id":66},{"group":"tabpfn","head_aspect":1.092,"ear_l_x":-0.874,"ear_l_y":-1.536,"ear_l_angle":71.972,"ear_r_x":0.933,"ear_r_y":-1.559,"ear_r_angle":39.37,"whisk_l":1.0,"whisk_r":0.0,"whisk_len":1.479,"whisk_tilt":3.034,"has_nose":1.0,"nose_x":0.05,"nose_y":-0.249,"nose_size":0.254,"nose_shape":1.0,"nose_round":0.559,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":67},{"group":"real","head_aspect":0.967,"ear_l_x":-0.984,"ear_l_y":-1.347,"ear_l_angle":33.082,"ear_r_x":0.956,"ear_r_y":-0.893,"ear_r_angle":55.477,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.141,"nose_y":0.089,"nose_size":0.181,"nose_shape":1.0,"nose_round":0.831,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":68},{"group":"shuffled","head_aspect":0.992,"ear_l_x":-0.471,"ear_l_y":-1.814,"ear_l_angle":51.001,"ear_r_x":1.031,"ear_r_y":-1.299,"ear_r_angle":109.803,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.398,"nose_y":-0.289,"nose_size":0.028,"nose_shape":1.0,"nose_round":0.834,"has_eyes":1.0,"eye_gap":0.551,"eye_y":-0.424,"eye_size":0.19,"id":69},{"group":"tabpfn","head_aspect":0.848,"ear_l_x":-0.598,"ear_l_y":-1.481,"ear_l_angle":44.149,"ear_r_x":0.995,"ear_r_y":-0.978,"ear_r_angle":85.334,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.046,"nose_y":-0.106,"nose_size":0.318,"nose_shape":1.0,"nose_round":0.248,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":70},{"group":"real","head_aspect":1.52,"ear_l_x":-0.534,"ear_l_y":-2.968,"ear_l_angle":45.394,"ear_r_x":1.132,"ear_r_y":-3.192,"ear_r_angle":65.681,"whisk_l":1.0,"whisk_r":2.0,"whisk_len":2.138,"whisk_tilt":24.387,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.374,"eye_y":-0.132,"eye_size":0.562,"id":71},{"group":"shuffled","head_aspect":0.894,"ear_l_x":-0.7,"ear_l_y":-1.376,"ear_l_angle":55.17,"ear_r_x":0.646,"ear_r_y":-0.881,"ear_r_angle":26.709,"whisk_l":0.0,"whisk_r":3.0,"whisk_len":1.199,"whisk_tilt":7.154,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":72},{"group":"shuffled","head_aspect":1.042,"ear_l_x":-0.847,"ear_l_y":-1.096,"ear_l_angle":75.55,"ear_r_x":0.668,"ear_r_y":-0.849,"ear_r_angle":53.652,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":1.534,"whisk_tilt":21.397,"has_nose":1.0,"nose_x":0.239,"nose_y":0.395,"nose_size":0.209,"nose_shape":1.0,"nose_round":0.219,"has_eyes":1.0,"eye_gap":0.515,"eye_y":-0.625,"eye_size":0.078,"id":73},{"group":"shuffled","head_aspect":1.019,"ear_l_x":-0.95,"ear_l_y":-2.266,"ear_l_angle":25.045,"ear_r_x":0.846,"ear_r_y":-1.317,"ear_r_angle":65.062,"whisk_l":2.0,"whisk_r":1.0,"whisk_len":1.224,"whisk_tilt":8.141,"has_nose":1.0,"nose_x":0.348,"nose_y":0.346,"nose_size":0.0,"nose_shape":1.0,"nose_round":0.686,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":74},{"group":"tabpfn","head_aspect":1.163,"ear_l_x":-1.064,"ear_l_y":-1.536,"ear_l_angle":100.816,"ear_r_x":0.513,"ear_r_y":-1.502,"ear_r_angle":71.978,"whisk_l":2.0,"whisk_r":0.0,"whisk_len":0.432,"whisk_tilt":8.646,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":75},{"group":"real","head_aspect":1.546,"ear_l_x":-0.501,"ear_l_y":-2.4,"ear_l_angle":34.828,"ear_r_x":0.423,"ear_r_y":-2.364,"ear_r_angle":15.116,"whisk_l":2.0,"whisk_r":3.0,"whisk_len":1.188,"whisk_tilt":20.257,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.659,"eye_y":-0.78,"eye_size":0.418,"id":76},{"group":"tabpfn","head_aspect":0.677,"ear_l_x":-1.158,"ear_l_y":-1.43,"ear_l_angle":41.976,"ear_r_x":1.176,"ear_r_y":-1.601,"ear_r_angle":48.098,"whisk_l":2.0,"whisk_r":0.0,"whisk_len":1.166,"whisk_tilt":16.226,"has_nose":1.0,"nose_x":0.222,"nose_y":0.15,"nose_size":0.399,"nose_shape":1.0,"nose_round":0.35,"has_eyes":1.0,"eye_gap":0.042,"eye_y":-0.146,"eye_size":0.252,"id":77},{"group":"tabpfn","head_aspect":0.975,"ear_l_x":-0.455,"ear_l_y":-1.234,"ear_l_angle":29.855,"ear_r_x":0.725,"ear_r_y":-1.041,"ear_r_angle":49.287,"whisk_l":2.0,"whisk_r":3.0,"whisk_len":1.543,"whisk_tilt":15.268,"has_nose":1.0,"nose_x":-0.178,"nose_y":-0.127,"nose_size":0.423,"nose_shape":1.0,"nose_round":0.663,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":78},{"group":"tabpfn","head_aspect":0.849,"ear_l_x":-0.703,"ear_l_y":-0.813,"ear_l_angle":75.99,"ear_r_x":0.646,"ear_r_y":-0.798,"ear_r_angle":97.631,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.008,"nose_y":0.37,"nose_size":0.086,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.852,"eye_y":0.237,"eye_size":0.436,"id":79},{"group":"tabpfn","head_aspect":1.103,"ear_l_x":-1.048,"ear_l_y":-2.149,"ear_l_angle":41.642,"ear_r_x":0.938,"ear_r_y":-2.047,"ear_r_angle":69.233,"whisk_l":0.0,"whisk_r":1.0,"whisk_len":0.671,"whisk_tilt":17.958,"has_nose":1.0,"nose_x":-0.136,"nose_y":0.319,"nose_size":0.066,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.661,"eye_y":-0.323,"eye_size":0.101,"id":80},{"group":"shuffled","head_aspect":0.87,"ear_l_x":-0.789,"ear_l_y":-1.183,"ear_l_angle":40.707,"ear_r_x":1.421,"ear_r_y":-1.197,"ear_r_angle":32.852,"whisk_l":3.0,"whisk_r":0.0,"whisk_len":2.488,"whisk_tilt":18.889,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":81},{"group":"real","head_aspect":0.998,"ear_l_x":-0.594,"ear_l_y":-1.253,"ear_l_angle":29.404,"ear_r_x":1.096,"ear_r_y":-1.06,"ear_r_angle":37.277,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.128,"nose_y":0.179,"nose_size":0.245,"nose_shape":1.0,"nose_round":0.827,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":82},{"group":"tabpfn","head_aspect":0.973,"ear_l_x":-0.831,"ear_l_y":-1.283,"ear_l_angle":37.397,"ear_r_x":0.813,"ear_r_y":-0.99,"ear_r_angle":36.524,"whisk_l":1.0,"whisk_r":3.0,"whisk_len":1.071,"whisk_tilt":12.4,"has_nose":1.0,"nose_x":0.054,"nose_y":0.232,"nose_size":0.187,"nose_shape":1.0,"nose_round":0.508,"has_eyes":1.0,"eye_gap":0.724,"eye_y":-0.039,"eye_size":0.206,"id":83},{"group":"tabpfn","head_aspect":0.824,"ear_l_x":-0.527,"ear_l_y":-1.094,"ear_l_angle":37.028,"ear_r_x":0.376,"ear_r_y":-1.021,"ear_r_angle":30.519,"whisk_l":1.0,"whisk_r":1.0,"whisk_len":1.033,"whisk_tilt":18.545,"has_nose":1.0,"nose_x":0.034,"nose_y":0.024,"nose_size":0.13,"nose_shape":1.0,"nose_round":0.203,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":84},{"group":"shuffled","head_aspect":0.931,"ear_l_x":-0.836,"ear_l_y":-0.868,"ear_l_angle":63.114,"ear_r_x":0.69,"ear_r_y":-1.539,"ear_r_angle":72.571,"whisk_l":2.0,"whisk_r":3.0,"whisk_len":0.849,"whisk_tilt":15.317,"has_nose":1.0,"nose_x":-0.076,"nose_y":-0.289,"nose_size":0.479,"nose_shape":1.0,"nose_round":0.78,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":85},{"group":"shuffled","head_aspect":0.892,"ear_l_x":-1.399,"ear_l_y":-1.449,"ear_l_angle":63.649,"ear_r_x":1.064,"ear_r_y":-0.747,"ear_r_angle":99.313,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.151,"nose_y":-0.173,"nose_size":0.142,"nose_shape":1.0,"nose_round":0.463,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":86},{"group":"shuffled","head_aspect":1.354,"ear_l_x":-1.07,"ear_l_y":-1.672,"ear_l_angle":106.538,"ear_r_x":0.389,"ear_r_y":-3.69,"ear_r_angle":54.928,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.258,"nose_y":-0.022,"nose_size":0.258,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.343,"eye_y":-0.429,"eye_size":0.536,"id":87},{"group":"tabpfn","head_aspect":0.805,"ear_l_x":-0.998,"ear_l_y":-0.736,"ear_l_angle":59.609,"ear_r_x":0.955,"ear_r_y":-0.766,"ear_r_angle":74.305,"whisk_l":3.0,"whisk_r":1.0,"whisk_len":0.58,"whisk_tilt":28.249,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.793,"eye_y":0.097,"eye_size":0.387,"id":88},{"group":"tabpfn","head_aspect":0.9,"ear_l_x":-0.914,"ear_l_y":-1.405,"ear_l_angle":43.271,"ear_r_x":1.077,"ear_r_y":-1.18,"ear_r_angle":68.531,"whisk_l":1.0,"whisk_r":2.0,"whisk_len":0.625,"whisk_tilt":26.864,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":89},{"group":"real","head_aspect":1.012,"ear_l_x":-1.165,"ear_l_y":-1.569,"ear_l_angle":68.218,"ear_r_x":0.625,"ear_r_y":-1.573,"ear_r_angle":49.579,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":90},{"group":"shuffled","head_aspect":0.945,"ear_l_x":-0.533,"ear_l_y":-1.302,"ear_l_angle":37.156,"ear_r_x":0.637,"ear_r_y":-1.17,"ear_r_angle":40.665,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":1.136,"whisk_tilt":16.09,"has_nose":1.0,"nose_x":-0.392,"nose_y":0.047,"nose_size":0.0,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":91},{"group":"real","head_aspect":0.851,"ear_l_x":-0.927,"ear_l_y":-1.063,"ear_l_angle":77.152,"ear_r_x":1.042,"ear_r_y":-1.429,"ear_r_angle":84.593,"whisk_l":3.0,"whisk_r":0.0,"whisk_len":0.902,"whisk_tilt":27.669,"has_nose":1.0,"nose_x":-0.249,"nose_y":-0.115,"nose_size":0.218,"nose_shape":1.0,"nose_round":0.265,"has_eyes":1.0,"eye_gap":1.1,"eye_y":-0.325,"eye_size":0.378,"id":92},{"group":"shuffled","head_aspect":0.77,"ear_l_x":-0.949,"ear_l_y":-1.375,"ear_l_angle":61.832,"ear_r_x":0.852,"ear_r_y":-2.154,"ear_r_angle":49.69,"whisk_l":2.0,"whisk_r":3.0,"whisk_len":0.928,"whisk_tilt":19.828,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.326,"eye_y":-0.025,"eye_size":0.269,"id":93},{"group":"shuffled","head_aspect":1.493,"ear_l_x":-0.891,"ear_l_y":-1.426,"ear_l_angle":78.581,"ear_r_x":1.235,"ear_r_y":-1.42,"ear_r_angle":40.906,"whisk_l":0.0,"whisk_r":1.0,"whisk_len":1.199,"whisk_tilt":15.161,"has_nose":1.0,"nose_x":-0.094,"nose_y":-0.178,"nose_size":0.162,"nose_shape":1.0,"nose_round":0.554,"has_eyes":1.0,"eye_gap":0.677,"eye_y":-0.456,"eye_size":0.322,"id":94},{"group":"tabpfn","head_aspect":0.833,"ear_l_x":-1.103,"ear_l_y":-0.751,"ear_l_angle":22.368,"ear_r_x":0.582,"ear_r_y":-0.937,"ear_r_angle":53.917,"whisk_l":1.0,"whisk_r":3.0,"whisk_len":1.456,"whisk_tilt":16.175,"has_nose":1.0,"nose_x":-0.222,"nose_y":0.076,"nose_size":0.039,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":95},{"group":"tabpfn","head_aspect":0.854,"ear_l_x":-0.948,"ear_l_y":-0.959,"ear_l_angle":60.932,"ear_r_x":0.731,"ear_r_y":-0.771,"ear_r_angle":73.199,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.053,"nose_y":0.38,"nose_size":0.221,"nose_shape":1.0,"nose_round":0.363,"has_eyes":1.0,"eye_gap":0.481,"eye_y":-0.064,"eye_size":0.051,"id":96},{"group":"real","head_aspect":0.899,"ear_l_x":-1.062,"ear_l_y":-0.946,"ear_l_angle":53.087,"ear_r_x":1.093,"ear_r_y":-0.916,"ear_r_angle":39.621,"whisk_l":3.0,"whisk_r":0.0,"whisk_len":0.777,"whisk_tilt":20.128,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":97},{"group":"tabpfn","head_aspect":1.031,"ear_l_x":-1.234,"ear_l_y":-1.65,"ear_l_angle":76.752,"ear_r_x":1.215,"ear_r_y":-1.982,"ear_r_angle":86.624,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.022,"nose_y":0.073,"nose_size":0.336,"nose_shape":1.0,"nose_round":0.31,"has_eyes":1.0,"eye_gap":0.121,"eye_y":-0.225,"eye_size":0.455,"id":98},{"group":"real","head_aspect":0.999,"ear_l_x":-1.01,"ear_l_y":-1.263,"ear_l_angle":64.444,"ear_r_x":0.854,"ear_r_y":-1.277,"ear_r_angle":43.059,"whisk_l":2.0,"whisk_r":2.0,"whisk_len":0.955,"whisk_tilt":13.998,"has_nose":1.0,"nose_x":0.071,"nose_y":0.367,"nose_size":0.56,"nose_shape":1.0,"nose_round":0.762,"has_eyes":1.0,"eye_gap":0.651,"eye_y":-0.149,"eye_size":0.515,"id":99},{"group":"shuffled","head_aspect":0.936,"ear_l_x":-0.57,"ear_l_y":-0.738,"ear_l_angle":77.256,"ear_r_x":0.702,"ear_r_y":-2.087,"ear_r_angle":34.159,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.062,"nose_y":0.395,"nose_size":0.148,"nose_shape":1.0,"nose_round":0.463,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":100},{"group":"real","head_aspect":0.936,"ear_l_x":-0.618,"ear_l_y":-0.971,"ear_l_angle":49.399,"ear_r_x":0.631,"ear_r_y":-1.078,"ear_r_angle":50.639,"whisk_l":1.0,"whisk_r":0.0,"whisk_len":0.681,"whisk_tilt":5.001,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":1.157,"eye_y":0.173,"eye_size":0.635,"id":101},{"group":"shuffled","head_aspect":0.969,"ear_l_x":-0.513,"ear_l_y":-1.684,"ear_l_angle":47.197,"ear_r_x":1.071,"ear_r_y":-1.836,"ear_r_angle":81.663,"whisk_l":0.0,"whisk_r":2.0,"whisk_len":0.697,"whisk_tilt":6.407,"has_nose":1.0,"nose_x":-0.1,"nose_y":0.198,"nose_size":0.385,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":102},{"group":"tabpfn","head_aspect":0.863,"ear_l_x":-1.134,"ear_l_y":-0.983,"ear_l_angle":51.405,"ear_r_x":1.272,"ear_r_y":-1.364,"ear_r_angle":78.861,"whisk_l":1.0,"whisk_r":1.0,"whisk_len":0.674,"whisk_tilt":11.193,"has_nose":1.0,"nose_x":0.011,"nose_y":0.36,"nose_size":0.338,"nose_shape":1.0,"nose_round":0.726,"has_eyes":1.0,"eye_gap":0.799,"eye_y":-0.106,"eye_size":0.188,"id":103},{"group":"tabpfn","head_aspect":0.945,"ear_l_x":-0.917,"ear_l_y":-1.12,"ear_l_angle":57.315,"ear_r_x":0.783,"ear_r_y":-1.433,"ear_r_angle":61.553,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.405,"nose_y":-0.181,"nose_size":0.228,"nose_shape":1.0,"nose_round":0.672,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":104},{"group":"tabpfn","head_aspect":0.828,"ear_l_x":-0.435,"ear_l_y":-1.21,"ear_l_angle":87.543,"ear_r_x":1.095,"ear_r_y":-1.022,"ear_r_angle":49.007,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.337,"nose_y":-0.199,"nose_size":0.047,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":105},{"group":"real","head_aspect":1.001,"ear_l_x":-1.122,"ear_l_y":-1.488,"ear_l_angle":35.153,"ear_r_x":0.783,"ear_r_y":-1.608,"ear_r_angle":36.615,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.733,"eye_y":-0.371,"eye_size":0.235,"id":106},{"group":"shuffled","head_aspect":0.954,"ear_l_x":-1.103,"ear_l_y":-1.532,"ear_l_angle":35.068,"ear_r_x":0.957,"ear_r_y":-1.065,"ear_r_angle":56.163,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.002,"nose_y":-0.167,"nose_size":0.688,"nose_shape":1.0,"nose_round":0.779,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":107},{"group":"tabpfn","head_aspect":1.469,"ear_l_x":-0.56,"ear_l_y":-0.707,"ear_l_angle":33.846,"ear_r_x":0.863,"ear_r_y":-3.602,"ear_r_angle":66.919,"whisk_l":2.0,"whisk_r":5.0,"whisk_len":0.452,"whisk_tilt":10.289,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.752,"eye_y":-0.305,"eye_size":0.35,"id":108},{"group":"shuffled","head_aspect":0.989,"ear_l_x":-1.07,"ear_l_y":-1.886,"ear_l_angle":65.745,"ear_r_x":1.436,"ear_r_y":-1.662,"ear_r_angle":36.769,"whisk_l":3.0,"whisk_r":3.0,"whisk_len":0.577,"whisk_tilt":30.81,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":109},{"group":"tabpfn","head_aspect":1.065,"ear_l_x":-0.995,"ear_l_y":-1.292,"ear_l_angle":43.464,"ear_r_x":0.888,"ear_r_y":-1.487,"ear_r_angle":31.796,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.142,"nose_y":0.08,"nose_size":0.122,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.71,"eye_y":-0.299,"eye_size":0.057,"id":110},{"group":"tabpfn","head_aspect":0.842,"ear_l_x":-0.753,"ear_l_y":-0.796,"ear_l_angle":62.558,"ear_r_x":0.513,"ear_r_y":-0.847,"ear_r_angle":46.614,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.002,"nose_y":0.205,"nose_size":0.187,"nose_shape":1.0,"nose_round":0.703,"has_eyes":1.0,"eye_gap":0.222,"eye_y":-0.017,"eye_size":0.165,"id":111},{"group":"tabpfn","head_aspect":0.892,"ear_l_x":-0.964,"ear_l_y":-1.35,"ear_l_angle":93.353,"ear_r_x":1.463,"ear_r_y":-1.589,"ear_r_angle":55.742,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.033,"nose_y":0.196,"nose_size":0.4,"nose_shape":1.0,"nose_round":0.761,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":112},{"group":"tabpfn","head_aspect":1.192,"ear_l_x":-1.337,"ear_l_y":-1.559,"ear_l_angle":75.342,"ear_r_x":0.979,"ear_r_y":-1.456,"ear_r_angle":107.86,"whisk_l":3.0,"whisk_r":1.0,"whisk_len":0.927,"whisk_tilt":16.611,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":113},{"group":"real","head_aspect":0.931,"ear_l_x":-0.199,"ear_l_y":-1.296,"ear_l_angle":33.208,"ear_r_x":0.901,"ear_r_y":-1.225,"ear_r_angle":39.07,"whisk_l":2.0,"whisk_r":3.0,"whisk_len":1.32,"whisk_tilt":29.819,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":1.0,"eye_gap":0.481,"eye_y":-0.38,"eye_size":0.146,"id":114},{"group":"tabpfn","head_aspect":1.191,"ear_l_x":-0.902,"ear_l_y":-1.54,"ear_l_angle":75.528,"ear_r_x":0.678,"ear_r_y":-1.731,"ear_r_angle":74.451,"whisk_l":3.0,"whisk_r":2.0,"whisk_len":1.971,"whisk_tilt":10.412,"has_nose":1.0,"nose_x":-0.314,"nose_y":-0.292,"nose_size":0.576,"nose_shape":1.0,"nose_round":0.843,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":115},{"group":"tabpfn","head_aspect":1.025,"ear_l_x":-0.932,"ear_l_y":-1.614,"ear_l_angle":74.673,"ear_r_x":0.336,"ear_r_y":-1.296,"ear_r_angle":63.055,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":0.0,"nose_x":null,"nose_y":null,"nose_size":null,"nose_shape":null,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":116},{"group":"real","head_aspect":1.001,"ear_l_x":-0.956,"ear_l_y":-1.21,"ear_l_angle":67.908,"ear_r_x":0.289,"ear_r_y":-1.374,"ear_r_angle":27.524,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":-0.305,"nose_y":-0.142,"nose_size":0.0,"nose_shape":0.0,"nose_round":null,"has_eyes":1.0,"eye_gap":0.651,"eye_y":-0.198,"eye_size":0.0,"id":117},{"group":"tabpfn","head_aspect":0.876,"ear_l_x":-1.229,"ear_l_y":-1.551,"ear_l_angle":85.945,"ear_r_x":1.014,"ear_r_y":-1.658,"ear_r_angle":72.537,"whisk_l":0.0,"whisk_r":0.0,"whisk_len":null,"whisk_tilt":null,"has_nose":1.0,"nose_x":0.078,"nose_y":-0.047,"nose_size":0.06,"nose_shape":0.0,"nose_round":null,"has_eyes":0.0,"eye_gap":null,"eye_y":null,"eye_size":null,"id":118},{"group":"shuffled","head_aspect":1.24,"ear_l_x":-0.94,"ear_l_y":-0.749,"ear_l_angle":49.636,"ear_r_x":0.685,"ear_r_y":-1.765,"ear_r_angle":71.083,"whisk_l":0.0,"whisk_r":2.0,"whisk_len":1.35,"whisk_tilt":15.509,"has_nose":1.0,"nose_x":-0.351,"nose_y":0.346,"nose_size":0.479,"nose_shape":1.0,"nose_round":0.18,"has_eyes":1.0,"eye_gap":0.35,"eye_y":0.037,"eye_size":0.347,"id":119}]};
+const CATS = DATA.cats;
+const BY_ID = Object.fromEntries(CATS.map(c => [c.id, c]));
+const GROUPS = [["real", "Real cats (drawn by people)"], ["tabpfn", "TabPFN cats"], ["shuffled", "Shuffled cats"]];
+const PER_GROUP = 8;
+
+/* ---------- drawing a cat from its part numbers (same code for every group) ---------- */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r) { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); }
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const rad = d => d * Math.PI / 180;
+
+function catStrokes(c) {
+  const r = mulberry32(c.id * 7919 + 13);
+  const wob = (pts, a = 0.025) => pts.map(([x, y]) => [x + gauss(r) * a, y + gauss(r) * a]);
+  const strokes = [];
+  const aspect = clamp(c.head_aspect, 0.5, 1.8), cy = 1 - aspect, rx = 1, ry = aspect;
+  const E = t => [rx * Math.cos(t), cy + ry * Math.sin(t)];
+
+  const head = [];
+  for (let k = 0; k < 40; k++) head.push(E(2 * Math.PI * k / 40));
+  const h = wob(head); h.push(h[0]); strokes.push(h);
+
+  // ears: each ear's base stays on its own side of the head top, so ears never cross
+  for (const side of ["l", "r"]) {
+    const tx = c[`ear_${side}_x`], ty = c[`ear_${side}_y`], ang = c[`ear_${side}_angle`];
+    if (tx == null) continue;
+    const left = side === "l";
+    let t = Math.atan2((ty - cy) / ry, tx / rx);
+    t = left ? clamp(t, -Math.PI + 0.3, -Math.PI / 2 - 0.15) : clamp(t, -Math.PI / 2 + 0.15, -0.3);
+    const base = E(t);
+    const height = Math.hypot(base[0] - tx, base[1] - ty);
+    const half = Math.max(height * Math.tan(rad(clamp(ang, 20, 120)) / 2), 0.1);
+    const d = Math.max(half / Math.max(rx, ry), 0.08);
+    const a1 = left ? t - d : Math.max(t - d, -Math.PI / 2 + 0.04);
+    const a2 = left ? Math.min(t + d, -Math.PI / 2 - 0.04) : t + d;
+    strokes.push(wob([E(a1), [tx, ty], E(a2)]));
+  }
+
+  if (c.whisk_len != null) {
+    const wy = c.nose_y != null ? c.nose_y : cy + 0.3 * ry;
+    for (const [side, count] of [[-1, c.whisk_l], [1, c.whisk_r]]) {
+      for (let k = 0; k < count; k++) {
+        const spread = (k - (count - 1) / 2) * 12;
+        const a = rad(clamp(c.whisk_tilt, 0, 45) * (k % 2 ? 1 : -1) * 0.5 + spread);
+        const s = [side * 0.35, wy + 0.05 * k];
+        strokes.push(wob([s, [s[0] + side * c.whisk_len * Math.cos(a), s[1] + c.whisk_len * Math.sin(a)]], 0.01));
+      }
+    }
+  }
+
+  const circle = (x, y, rr, n) => { const p = []; for (let k = 0; k <= n; k++) p.push([x + rr * Math.cos(2 * Math.PI * k / n), y + rr * Math.sin(2 * Math.PI * k / n)]); return p; };
+  if (c.has_eyes === 1) {
+    const rr = Math.max(c.eye_size / 2, 0.04);
+    strokes.push(circle(-c.eye_gap / 2, c.eye_y, rr, 10), circle(c.eye_gap / 2, c.eye_y, rr, 10));
+  }
+  if (c.has_nose === 1) {
+    const nx = c.nose_x, ny = c.nose_y, s = Math.max(c.nose_size / 2, 0.05);
+    if (c.nose_round == null) strokes.push(circle(nx, ny, 0.05, 6));
+    else if (c.nose_round < 0.75) strokes.push([[nx - s, ny - s * 0.6], [nx + s, ny - s * 0.6], [nx, ny + s * 0.6], [nx - s, ny - s * 0.6]]);
+    else strokes.push(circle(nx, ny, s, 10));
+  }
+  return strokes;
+}
+
+function catSVG(c, animate) {
+  const strokes = catStrokes(c);
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const s of strokes) for (const [x, y] of s) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const scale = Math.min(84 / (x1 - x0), 84 / (y1 - y0), 22);
+  const ox = 50 - scale * (x0 + x1) / 2, oy = 50 - scale * (y0 + y1) / 2;
+  const paths = strokes.map((s, i) => {
+    const d = s.map(([x, y], k) => (k ? "L" : "M") + (ox + x * scale).toFixed(2) + " " + (oy + y * scale).toFixed(2)).join("");
+    return `<path d="${d}" pathLength="1" style="animation-delay:${(i * 0.07).toFixed(2)}s"/>`;
+  }).join("");
+  return `<svg viewBox="0 0 100 100" class="ink${animate ? " draw" : ""}" role="img" aria-label="a cat doodle">${paths}</svg>`;
+}
+
+/* ---------- quiz ---------- */
+const $ = id => document.getElementById(id);
+let state = { phase: "start", order: [], idx: 0, said: [] };
+
+function pickOrder() {
+  const r = Math.random;
+  const order = [];
+  for (const [g] of GROUPS) {
+    const pool = CATS.filter(c => c.group === g).map(c => c.id);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    order.push(...pool.slice(0, PER_GROUP));
+  }
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  return order;
+}
+
+function show(phase) {
+  state.phase = phase;
+  $("start").hidden = phase !== "start";
+  $("quiz").hidden = phase !== "quiz";
+  $("done").hidden = phase !== "done";
+}
+
+function renderQuestion() {
+  const id = state.order[state.idx];
+  $("count").textContent = `${state.idx + 1} / ${state.order.length}`;
+  $("barfill").style.width = `${100 * state.idx / state.order.length}%`;
+  $("qtag").textContent = `cat ${state.idx + 1}`;
+  $("qsvg").innerHTML = catSVG(BY_ID[id], true);
+}
+
+function answer(saidReal) {
+  if (state.phase !== "quiz") return;
+  state.said.push(saidReal ? 1 : 0);
+  state.idx++;
+  if (state.idx >= state.order.length) finish(); else renderQuestion();
+}
+
+function encode(items) {
+  return "TD1-" + items.map(([id, s]) => id.toString(36).padStart(2, "0") + (s ? "r" : "f")).join("");
+}
+function decodeAll(text) {
+  const out = [];
+  for (const m of text.matchAll(/TD1-((?:[0-9a-z]{2}[rf])+)/gi)) {
+    const body = m[1].toLowerCase();
+    const items = [];
+    for (let i = 0; i + 3 <= body.length; i += 3) {
+      const id = parseInt(body.slice(i, i + 2), 36);
+      if (BY_ID[id]) items.push([id, body[i + 2] === "r" ? 1 : 0]);
+    }
+    if (items.length) out.push(items);
+  }
+  return out;
+}
+
+function tallyRows(quizzes) {
+  const t = Object.fromEntries(GROUPS.map(([g]) => [g, { n: 0, real: 0 }]));
+  for (const items of quizzes) for (const [id, s] of items) { const g = BY_ID[id]?.group; if (g) { t[g].n++; t[g].real += s; } }
+  return t;
+}
+function meterRow(label, real, n, extra) {
+  const pct = n ? Math.round(100 * real / n) : 0;
+  return `<tr><td>${label}</td><td><div class="meter"><div style="width:${pct}%"></div></div></td>` +
+    `<td class="num">${n ? `${real} of ${n} (${pct}%)` : "none yet"}</td>${extra ?? ""}</tr>`;
+}
+
+async function finish() {
+  show("done");
+  const items = state.order.map((id, i) => [id, state.said[i]]);
+  let right = 0;
+  for (const [id, s] of items) right += (BY_ID[id].group === "real") === (s === 1) ? 1 : 0;
+  $("scoreline").textContent = `You got ${right} of ${items.length} right`;
+  const t = tallyRows([items]);
+  $("mine").innerHTML = GROUPS.map(([g, label]) => meterRow(label, t[g].real, t[g].n)).join("");
+  $("resultcode").textContent = encode(items);
+  $("copied").textContent = "";
+  await save(items);
+}
+
+/* ---------- saving (only works for signed-in contributors; everyone else sends the code) ---------- */
+let db = null, user = null, uid = null, isOwner = false, connecting = null;
+
+async function save(items) {
+  if (connecting) { try { await connecting; } catch (e) {} }
+  const send = " Send the code below to the person who shared this page.";
+  if (!window.claude?.use) return; // static copy (GitHub Pages): nothing to save to
+  if (!db) { $("savestatus").textContent = "Saving isn't available in this view (db: none)." + send; return; }
+  if (!uid) { $("savestatus").textContent = "Saving isn't available: this view didn't say who you are (user id: none)." + send; return; }
+  try {
+    await db.doc("answers/" + uid).set({ v: 1, items, at: Date.now() });
+    $("savestatus").textContent = "Your answers are saved. You can still copy your code below.";
+    if (isOwner) loadTally();
+  } catch (e) {
+    $("savestatus").textContent = `Your answers couldn't be saved (${e?.code || "error"}).` + send;
+  }
+}
+
+async function loadTally() {
+  if (!db) { $("ownerstatus").textContent = "Saved answers can't be reached in this view. Pasted codes are counted below."; renderTally([]); return; }
+  $("ownerstatus").textContent = "Loading saved answers…";
+  const timer = setTimeout(() => { $("ownerstatus").textContent = "Saved answers can't be reached yet. Try Refresh in a moment."; }, 10000);
+  try {
+    const [a, c] = await Promise.all([db.collection("answers").get(), db.collection("codes").get()]);
+    clearTimeout(timer);
+    const quizzes = [];
+    for (const d of a.docs) { const items = d.data()?.items; if (Array.isArray(items)) quizzes.push(items.filter(x => Array.isArray(x) && BY_ID[x[0]])); }
+    const saved = quizzes.length;
+    for (const d of c.docs) quizzes.push(...decodeAll(String(d.data()?.code ?? "")));
+    $("ownerstatus").textContent = `${quizzes.length} quizzes counted: ${saved} saved on this page, ${quizzes.length - saved} from pasted codes.`;
+    renderTally(quizzes);
+  } catch (e) {
+    clearTimeout(timer);
+    $("ownerstatus").textContent = "Couldn't load saved answers. Try Refresh.";
+  }
+}
+
+function renderTally(quizzes) {
+  const t = tallyRows(quizzes);
+  $("tally").innerHTML = GROUPS.map(([g, label]) => meterRow(label, t[g].real, t[g].n, `<td class="num">${t[g].n}</td>`)).join("");
+}
+
+async function addCodes() {
+  const text = $("codes").value;
+  const found = decodeAll(text);
+  if (!found.length) { $("addstatus").textContent = "No result codes found. They start with TD1-."; return; }
+  if (!db) { $("addstatus").textContent = "Can't save codes in this view."; return; }
+  try {
+    for (const m of text.matchAll(/TD1-(?:[0-9a-z]{2}[rf])+/gi)) await db.collection("codes").add({ code: m[0], at: Date.now() });
+    $("codes").value = "";
+    $("addstatus").textContent = `Added ${found.length} code${found.length > 1 ? "s" : ""}.`;
+    loadTally();
+  } catch (e) {
+    $("addstatus").textContent = "Couldn't save the codes. Try again in a moment.";
+  }
+}
+
+/* ---------- wiring ---------- */
+function start(saved) {
+  if (saved && Array.isArray(saved.order) && saved.order.length) state = saved;
+  $("examples").innerHTML = [0, 1, 2].map(() => {
+    const c = CATS[Math.floor(Math.random() * CATS.length)];
+    return `<div class="card">${catSVG(c, true)}</div>`;
+  }).join("");
+  $("go").onclick = () => { state = { phase: "quiz", order: pickOrder(), idx: 0, said: [] }; show("quiz"); renderQuestion(); };
+  $("saidReal").onclick = () => answer(true);
+  $("saidFake").onclick = () => answer(false);
+  $("again").onclick = () => { state = { phase: "quiz", order: pickOrder(), idx: 0, said: [] }; show("quiz"); renderQuestion(); };
+  $("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText($("resultcode").textContent); $("copied").textContent = "Copied."; }
+    catch (e) { $("copied").textContent = "Couldn't copy. Select the code and copy it by hand."; }
+  };
+  $("addcodes").onclick = addCodes;
+  $("refresh").onclick = loadTally;
+  document.addEventListener("keydown", e => {
+    if (state.phase !== "quiz" || e.target.tagName === "TEXTAREA") return;
+    const k = e.key.toLowerCase();
+    if (k === "r" || k === "arrowleft") answer(true);
+    if (k === "f" || k === "arrowright") answer(false);
+  });
+  if (state.phase === "quiz") { show("quiz"); renderQuestion(); }
+  else if (state.phase === "done") { show("quiz"); state.phase = "quiz"; finish(); }
+  else show("start");
+  window.claude?.hot?.snapshot?.(() => state);
+  connecting = connect();
+}
+
+async function connect() {
+  if (!window.claude?.use) return;
+  try {
+    [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    isOwner = user ? !!(await user.isOwner()) : false;
+    uid = user ? await user.id() : null;
+    if (uid && !/^[A-Za-z0-9_\-.~:@+]{1,200}$/.test(uid)) uid = null;
+    if (isOwner) { $("owner").hidden = false; loadTally(); }
+  } catch (e) { db = null; }
+}
+
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

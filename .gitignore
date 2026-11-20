@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+/data/
+*.csv
+*.ndjson
+/quiz_cats.json
+/*.png
